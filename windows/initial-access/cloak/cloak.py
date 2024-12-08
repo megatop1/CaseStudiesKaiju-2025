@@ -1,6 +1,33 @@
+import os
 import subprocess
 import readline
 from questionary import Style, select
+
+def list_ssh_keys(directory="/root/.ssh"):
+    """List available SSH key files in the specified directory."""
+    try:
+        files = [f for f in os.listdir(directory) if os.path.isfile(os.path.join(directory, f))]
+        if not files:
+            print(f"No SSH keys found in {directory}.")
+            return []
+        return files
+    except FileNotFoundError:
+        print(f"The directory {directory} does not exist.")
+        return []
+    except PermissionError:
+        print(f"Permission denied to access {directory}.")
+        return []
+
+def select_ssh_key(directory="/root/.ssh"):
+    """Prompt the user to select an SSH key from the available files."""
+    keys = list_ssh_keys(directory)
+    if not keys:
+        return None
+    return select(
+        "Select your SSH private key:",
+        choices=keys,
+        style=custom_style
+    ).ask()
 
 def rdp_masq():
     print("Initializing RDP masquerade...")
@@ -40,9 +67,9 @@ def rdp_masq():
                     tunnel_password = input("Enter SSH Password for the Tunnel: ")
                     ssh_command_prefix = f"sshpass -p '{tunnel_password}' ssh -o StrictHostKeyChecking=no -o UserKnownHostsFile=/dev/null"
                 elif tunnel_auth_method == "SSH Key":
-                    tunnel_key_file = input("Enter the name of your SSH private key for the Tunnel (no path): ").strip()
+                    tunnel_key_file = select_ssh_key()
                     if not tunnel_key_file:
-                        print("SSH key path for the Tunnel is required. Exiting.")
+                        print("No valid SSH key selected. Exiting.")
                         return
                     ssh_command_prefix = f"ssh -i /root/.ssh/{tunnel_key_file} -o StrictHostKeyChecking=no -o UserKnownHostsFile=/dev/null"
 
@@ -84,9 +111,9 @@ def ssh_masq():
         target_password = input("Enter SSH Password for the Target: ")
         target_ssh_prefix = f"sshpass -p '{target_password}' ssh -o StrictHostKeyChecking=no -o UserKnownHostsFile=/dev/null"
     elif target_auth_method == "SSH Key":
-        target_key_file = input("Enter the name of your SSH private key for the Target (no path): ").strip()
+        target_key_file = select_ssh_key()
         if not target_key_file:
-            print("SSH key path for the Target is required. Exiting.")
+            print("No valid SSH key selected for the Target. Exiting.")
             return
         target_ssh_prefix = f"ssh -i /root/.ssh/{target_key_file} -o StrictHostKeyChecking=no -o UserKnownHostsFile=/dev/null"
 
@@ -122,9 +149,9 @@ def ssh_masq():
                     tunnel_password = input("Enter SSH Password for the Tunnel: ")
                     tunnel_ssh_prefix = f"sshpass -p '{tunnel_password}' ssh -o StrictHostKeyChecking=no -o UserKnownHostsFile=/dev/null"
                 elif tunnel_auth_method == "SSH Key":
-                    tunnel_key_file = input("Enter the name of your SSH private key for the Tunnel (no path): ").strip()
+                    tunnel_key_file = select_ssh_key()
                     if not tunnel_key_file:
-                        print("SSH key path for the Tunnel is required. Exiting.")
+                        print("No valid SSH key selected for the Tunnel. Exiting.")
                         return
                     tunnel_ssh_prefix = f"ssh -i /root/.ssh/{tunnel_key_file} -o StrictHostKeyChecking=no -o UserKnownHostsFile=/dev/null"
 
