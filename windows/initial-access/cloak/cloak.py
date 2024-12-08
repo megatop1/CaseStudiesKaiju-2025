@@ -1,4 +1,5 @@
 import subprocess
+import readline
 from questionary import Style, select
 
 def rdp_masq():
