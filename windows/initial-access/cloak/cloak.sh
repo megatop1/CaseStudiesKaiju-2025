@@ -1,6 +1,21 @@
 #!/bin/bash
 
 IMAGE_NAME="cloak:latest"
+REBUILD=false
+
+for arg in "$@"; do
+    case $arg in
+        -r)
+            REBUILD=true
+            shift
+            ;;
+        *)
+            echo "Unknown argument: $arg"
+            echo "Usage: $0 [-rd]"
+            exit 1
+            ;;
+    esac
+done
 
 if ! command -v xfreerdp &> /dev/null; then
     echo "xfreerdp is not installed on the host. Install it with:"
@@ -15,8 +30,8 @@ if [ $? -ne 0 ]; then
     exit 1
 fi
 
-if ! docker image inspect "$IMAGE_NAME" > /dev/null 2>&1; then
-    echo "Docker image $IMAGE_NAME does not exist. Building the image..."
+if $REBUILD || ! docker image inspect "$IMAGE_NAME" > /dev/null 2>&1; then
+    echo "Building the Docker image..."
     docker buildx bake
     if [ $? -ne 0 ]; then
         echo "Failed to build the Docker image. Exiting."
