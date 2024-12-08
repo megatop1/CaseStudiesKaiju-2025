@@ -2,7 +2,7 @@
 
 IMAGE_NAME="cloak:latest"
 REBUILD=false
-SSH_KEY_DIR=""
+SSH_KEY_DIR="$HOME/.ssh"
 
 while [[ "$#" -gt 0 ]]; do
     case $1 in
