@@ -8,6 +8,8 @@ RUN apt-get update && apt-get install -y \
     openssh-client \
     curl \
     wget \
+    software-properties-common \
+    freerdp2-x11 \
     && apt-get clean
 
 # Install Chisel

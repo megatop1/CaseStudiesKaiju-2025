@@ -2,6 +2,19 @@
 
 IMAGE_NAME="cloak:latest"
 
+if ! command -v xfreerdp &> /dev/null; then
+    echo "xfreerdp is not installed on the host. Install it with:"
+    echo "sudo apt-get update && sudo apt-get install -y freerdp2-x11"
+    exit 1
+fi
+
+echo "Granting X11 permissions to Docker..."
+xhost +local:docker
+if [ $? -ne 0 ]; then
+    echo "Failed to grant X11 permissions. Ensure X11 is running and try again."
+    exit 1
+fi
+
 if ! docker image inspect "$IMAGE_NAME" > /dev/null 2>&1; then
     echo "Docker image $IMAGE_NAME does not exist. Building the image..."
     docker buildx bake
@@ -27,4 +40,3 @@ else
     echo "Docker container encountered an error."
     exit 1
 fi
-
