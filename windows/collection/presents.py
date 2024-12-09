@@ -12,6 +12,10 @@ def tunneltype():
 
     proxy_question = input("Do you have to tunnel this connection through an intermediary? (Y/N): ").strip().lower()
 
+    if proxy_question == "n":
+        print("\033[32m[+] No tunneling required. Proceeding...\033[0m")
+        return "NO_TUNNEL"
+
     if proxy_question == "y":
         tunnel_choice = select(
             "Tunnel Type:",
@@ -99,12 +103,7 @@ def creds():
     tunnel_result = tunneltype()
     
     if tunnel_result == "SOCKS Proxy":
-        # Update proxychains.conf if needed
-        sed_command = f"sudo sed -i 's/^socks5.*$/socks5 127.0.0.1 1080/' /etc/proxychains.conf"
-        subprocess.run(sed_command, shell=True, check=True)
-        print("\033[32m[+] Updated proxychains.conf for SOCKS Proxy.\033[0m")
-        
-        # Command with proxychains
+        print("\033[32m[+] Using SOCKS Proxy for LDAP dump.\033[0m")
         command = [
             "python",
             "/usr/local/bin/secretsdump.py",
@@ -112,7 +111,7 @@ def creds():
             "-outputfile",
             "secretsdump_output.txt"
         ]
-    elif tunnel_result is None:
+    elif tunnel_result is "NO_TUNNEL":
         # Direct command without tunneling
         command = [
             "python",
@@ -144,12 +143,22 @@ def ldap():
     password = input("Enter High Privileged LDAP User's Password: ")
     target = input("Enter Target IP: ")
 
-    tunneltype()
-    # Check if SOCKS Proxy is enabled from tunneltype()
-    if use_socks_proxy:
+    tunnel_result = tunneltype()
+    if tunnel_result == "SOCKS Proxy":
         print("\033[32m[+] Using SOCKS Proxy for LDAP dump.\033[0m")
         command = [
-            "proxychains",
+            "ldapdomaindump",
+            target,
+            "-u",
+            f"{domain}\\{username}",
+            "-p",
+            password,
+            "--no-json",
+            "--no-grep"
+        ]
+    elif tunnel_result == "NO_TUNNEL":
+        print("\033[32m[+] No tunneling required. Proceeding...\033[0m")
+        command = [
             "ldapdomaindump",
             target,
             "-u",
@@ -160,26 +169,25 @@ def ldap():
             "--no-grep"
         ]
     else:
-        command = [
-            "ldapdomaindump",
-            target,
-            "-u",
-            f"{domain}\\{username}",
-            "-p",
-            password,
-            "--no-json",
-            "--no-grep"
-        ]
+        print("\033[31m[-] Tunnel setup failed. Exiting LDAP module.\033[0m")
+        return
 
-    # Run the command
+    # Print and execute the command
+    print("\033[33m[!] Command to be executed:\033[0m", " ".join(command))
     try:
         print("\033[32m[+] Running LDAP domain dump...\033[0m")
-        result = subprocess.run(command, check=True, capture_output=True, text=True)
+        result = subprocess.run(command, check=True, stdout=subprocess.PIPE, stderr=subprocess.PIPE, text=True)
         print("\033[32m[+] LDAP domain dump completed successfully.\033[0m")
+        print("\033[32m[+] Command Output:\033[0m")
         print(result.stdout)
+
+        if result.stderr:
+            print("\033[33m[!] Command Warnings or Errors:\033[0m")
+            print(result.stderr)
     except subprocess.CalledProcessError as e:
-        print("\033[31m[-] LDAP domain dump failed. Error:\033[0m", e)
+        print("\033[31m[-] LDAP domain dump failed. Error:\033[0m")
         print(e.stderr)
+
 
 # Define custom style
 custom_style = Style([("choice", "fg:blue")])
