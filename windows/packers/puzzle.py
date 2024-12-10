@@ -146,7 +146,7 @@ def shellcode():
             exit(1)
 
         # Step 1: Update manifest
-        command = "python3 update_manifest.py"
+        command = "python3 /app/update_manifest.py"
         result = subprocess.run(command, shell=True, capture_output=True, text=True)
         print(result.stdout)
         print(result.stderr)
