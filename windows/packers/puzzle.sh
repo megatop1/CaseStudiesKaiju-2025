@@ -5,6 +5,9 @@ REBUILD=false
 HOST_PAYLOADS_DIR="./payloads"
 CONTAINER_PAYLOADS_DIR="/app/payloads"
 
+# Create Payloads Directory
+mkdir payloads/
+
 # Ensure the payloads directory exists on the host
 if [ ! -d "$HOST_PAYLOADS_DIR" ]; then
     echo "Creating payloads directory: $HOST_PAYLOADS_DIR"
