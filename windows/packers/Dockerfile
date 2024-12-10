@@ -10,6 +10,7 @@ RUN apt-get update && apt-get install -y \
     wget \
     software-properties-common \
     git \
+    golang \
     && apt-get clean
 
 # Set working directory
