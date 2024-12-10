@@ -141,7 +141,6 @@ def creds():
     except subprocess.CalledProcessError as e:
         print(e.stderr)
 
-
 def ldap():
     global shared_variables
 
@@ -184,7 +183,7 @@ def ldap():
             "ldapdomaindump",
             shared_variables["target"],
             "-u",
-            f"{shared_variables['domain']}\\{shared_variables['username']}",
+            f"'{shared_variables['domain']}\\{shared_variables['username']}'",  # Wrap with single quotes
             "-p",
             shared_variables["password"],
             "--no-json",
@@ -197,16 +196,38 @@ def ldap():
     print("\033[33m[!] Command to be executed:\033[0m", " ".join(command))
     try:
         print("\033[32m[+] Running LDAP domain dump...\033[0m")
-        result = subprocess.run(command, check=True, stdout=subprocess.PIPE, stderr=subprocess.PIPE, text=True)
+        result = subprocess.run(" ".join(command), shell=True, stdout=subprocess.PIPE, stderr=subprocess.PIPE, text=True, check=True)
+
         print("\033[32m[+] LDAP domain dump completed successfully.\033[0m")
         print("\033[32m[+] Command Output:\033[0m")
         print(result.stdout)
+        # Combine all files 
+        print("\033[32[+] Combining all files into one outfile.\033[0m")
+        command = "cat domain* > outfile.html" 
+        result = subprocess.run(command, shell=True, stdout=subprocess.PIPE, stderr=subprocess.PIPE, text=True, check=True)
+        print(result.stdout)
+        loot()
 
         if result.stderr:
             print("\033[33m[!] Command Warnings or Errors:\033[0m")
             print(result.stderr)
     except subprocess.CalledProcessError as e:
         print(e.stderr)
+
+
+def loot():
+    # Define Loot Directory (Mounted To Docker/Host)
+    directory = "."
+    # Check if Directory Exists
+    if not os.path.exists(directory):
+        print("Directory '{directory} does not exist.")
+        return
+    else:
+        print("loot directory initialized")
+
+    files = [f for f in os.listdir(directory) if os.path.isfile(os.path.join(directory, f))]
+    print("\033[32m[+] Ensuring Loot files have been created")
+    print(files)
 
 
 # Define custom style
